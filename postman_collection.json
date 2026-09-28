@@ -1,0 +1,398 @@
+{
+	"info": {
+		"_postman_id": "a918f0c2-9842-491d-937b-9e28f09b5a34",
+		"name": "Task Nest - JWT Auth Module",
+		"description": "Postman Collection for testing NestJS JWT Authentication module with Passport, Guards, RBAC, and Exception Filter.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Public Routes",
+			"item": [
+				{
+					"name": "GET Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Public health endpoint marked with @Public(). Accessible without any token."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2. User Authentication",
+			"item": [
+				{
+					"name": "POST User Signup",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/signup",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"signup"
+							]
+						},
+						"description": "Registers a new user. Password is encrypted with bcrypt and omitted from the response."
+					},
+					"response": []
+				},
+				{
+					"name": "POST User Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.data && jsonData.data.access_token) {",
+									"    pm.collectionVariables.set('user_token', jsonData.data.access_token);",
+									"    console.log('User Token saved:', jsonData.data.access_token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"description": "Authenticates user credentials and automatically stores the access_token in the collection variable {{user_token}}."
+					},
+					"response": []
+				},
+				{
+					"name": "GET User Profile (Protected)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/auth/profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"profile"
+							]
+						},
+						"description": "Protected route. Extracts user data directly from the decoded JWT payload via JwtStrategy."
+					},
+					"response": []
+				},
+				{
+					"name": "POST Refresh Token (Protected)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/auth/refresh",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"refresh"
+							]
+						},
+						"description": "Issues new access and refresh tokens for the authenticated user."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3. Admin & RBAC (Bonus)",
+			"item": [
+				{
+					"name": "POST Admin Signup",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"adminPass123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/signup-admin",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"signup-admin"
+							]
+						},
+						"description": "Creates an admin account with role = 'admin'."
+					},
+					"response": []
+				},
+				{
+					"name": "POST Admin Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.data && jsonData.data.access_token) {",
+									"    pm.collectionVariables.set('admin_token', jsonData.data.access_token);",
+									"    console.log('Admin Token saved:', jsonData.data.access_token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"adminPass123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"description": "Authenticates admin credentials and stores the token in {{admin_token}}."
+					},
+					"response": []
+				},
+				{
+					"name": "GET Admin Dashboard (Admin Only)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/auth/admin",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"admin"
+							]
+						},
+						"description": "Protected by RolesGuard with @Roles('admin'). Succeeds when calling with admin token."
+					},
+					"response": []
+				},
+				{
+					"name": "GET Admin Dashboard with Regular User (Expect 403 Forbidden)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/auth/admin",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"admin"
+							]
+						},
+						"description": "Tests RolesGuard authorization failure: attempts to access admin route with a regular user token. Returns 403 Forbidden."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "4. Error Handling & Validation Tests",
+			"item": [
+				{
+					"name": "GET Profile without Token (Expect 401 Unauthorized)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/auth/profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"profile"
+							]
+						},
+						"description": "Calls protected route without token to test JwtAuthGuard returning 401."
+					},
+					"response": []
+				},
+				{
+					"name": "POST Signup Invalid Email & Short Password (Expect 400 Bad Request)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"not-an-email\",\n  \"password\": \"123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/signup",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"signup"
+							]
+						},
+						"description": "Tests class-validator DTO rules and HttpExceptionFilter returning formatted validation errors."
+					},
+					"response": []
+				},
+				{
+					"name": "POST Login Wrong Password (Expect 401 Unauthorized)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"wrongPasswordHere\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"description": "Tests bcrypt password comparison failure."
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "user_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "admin_token",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
