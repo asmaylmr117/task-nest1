@@ -2,123 +2,145 @@
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
 </p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+<h1 align="center">NestJS JWT Authentication Module with Passport</h1>
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
+<p align="center">
+  A production-ready, scalable, and modular authentication system built with <b>NestJS</b>, <b>Passport</b>, and <b>JWT</b>. Featuring robust security patterns, Role-Based Access Control (RBAC), and clean architecture.
 </p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
-## Description
+---
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## 🚀 Setup & Execution
 
-## Project setup
-
+### 1. Installation
 ```bash
 $ npm install
 ```
 
-## Compile and run the project
-
+### 2. Run the Application
 ```bash
-# development
-$ npm run start
-
-# watch mode
+# Development mode with hot-reload
 $ npm run start:dev
 
-# production mode
+# Production mode
 $ npm run start:prod
 ```
 
-## Run tests
-
+### 3. Automated Tests
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
+# E2E test suite covering all auth flows & RBAC
 $ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
 ```
 
-## Deployment
+---
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+## 🌟 Key Architecture & Scalability Highlights
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+This module is designed adhering to **Clean Architecture** and enterprise design principles:
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
+* **Clean & Modular Structure:** Clear separation of concerns between Controllers (HTTP layer), Services (Business Logic), Strategies (Auth verification), and DTOs (Data validation).
+* **High Scalability:** 
+  - Stateless JWT token flow ensures horizontal scaling across multiple server instances without session state synchronization.
+  - In-memory data store is abstracted behind service methods, making database integration (Prisma, TypeORM, Mongoose) seamless without touching controllers or guards.
+* **Global Security by Default:** Global `JwtAuthGuard` secures all endpoints automatically. Public endpoints are explicitly marked via custom `@Public()` metadata decorator, preventing accidental data leaks.
+* **Granular Role-Based Access Control (RBAC):** Extensible `@Roles()` decorator with `RolesGuard` enabling easy permission management for any number of roles (`admin`, `user`, `manager`, etc.).
+* **Standardized Error Handling:** Global `HttpExceptionFilter` transforms all exceptions (including nested class-validator errors) into a uniform API response format: `{ success: false, statusCode, message }`.
+* **Strict Input Validation:** Powered by `class-validator` and `ValidationPipe` with payload whitelist filtering.
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+---
 
-## Observability
+## 📋 API Endpoints Specifications
 
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
+| Method | Endpoint | Access Level | Description | Status Code |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/health` | 🟢 **Public** (`@Public()`) | Server health status & uptime | `200 OK` |
+| `POST` | `/auth/signup` | 🟢 **Public** (`@Public()`) | Registers a new user with bcrypt password hashing | `201 Created` |
+| `POST` | `/auth/login` | 🟢 **Public** (`@Public()`) | Validates credentials & returns JWT access token | `201 Created` |
+| `GET` | `/auth/profile` | 🔒 **Protected** (Bearer JWT) | Returns authenticated user data from token payload | `200 OK` |
+| `POST` | `/auth/refresh` | 🔒 **Protected** (Bearer JWT) | Issues fresh access (15m) & refresh (7d) tokens | `201 Created` |
+| `POST` | `/auth/signup-admin` | 🟢 **Public** (`@Public()`) | Registers an administrator account | `201 Created` |
+| `GET` | `/auth/admin` | 👑 **Admin Only** (`@Roles('admin')`) | Protected dashboard for admin role | `200 OK` |
 
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
+---
 
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
+## 📸 Postman Testing & Verification Screenshots
 
-To add it to this project:
+All endpoints have been tested and verified via Postman. Below are the actual execution screenshots from the Postman test suite:
 
-```bash
-$ npm install @nestjs/observe
-```
+---
 
-Then follow the [setup guide](https://docs.nestjs.com/observability/overview) - it takes a single import and an app key.
+### 1. 🟢 Public Health Check Endpoint (`GET /health`)
+> **Description:** Checks application status and uptime. Bypasses JWT verification using the `@Public()` custom decorator.
 
-The free plan needs no payment details and covers 300,000 events a month. You can also browse the [live demo](https://www.observe-demo.nestjs.com/dashboard) first - the whole dashboard over a busy service's data, with nothing to install.
+<p align="center">
+  <img src="./some%20screenshots%20from%20postman/health.PNG" alt="Health Check Endpoint" width="850"/>
+</p>
 
-## Resources
+---
 
-Check out a few resources that may come in handy when working with NestJS:
+### 2. 📝 User Registration (`POST /auth/signup`)
+> **Description:** Creates a new user. The password is encrypted with **bcrypt (10 salt rounds)** and is completely excluded from the response for security.
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observe](https://observe.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+<p align="center">
+  <img src="./some%20screenshots%20from%20postman/signup.PNG" alt="User Signup Endpoint" width="850"/>
+</p>
 
-## Support
+---
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+### 3. 🔑 User Login & Token Generation (`POST /auth/login`)
+> **Description:** Validates credentials against hashed passwords and generates a signed JWT `access_token` containing `{ sub, email, role }`.
 
-## Stay in touch
+<p align="center">
+  <img src="./some%20screenshots%20from%20postman/login.PNG" alt="User Login Endpoint" width="850"/>
+</p>
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+---
 
-## License
+### 4. 👤 Protected User Profile (`GET /auth/profile`)
+> **Description:** Accesses a protected route using the `Authorization: Bearer <token>` header. The user data is extracted directly from the decoded token payload without database overhead.
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+<p align="center">
+  <img src="./some%20screenshots%20from%20postman/Get%20profile.PNG" alt="Protected Profile Endpoint" width="850"/>
+</p>
+
+---
+
+### 5. 🔄 Token Refreshing Mechanism (`POST /auth/refresh`)
+> **Description:** Seamless token renewal issuing a short-lived access token (15 mins) and a long-lived refresh token (7 days).
+
+<p align="center">
+  <img src="./some%20screenshots%20from%20postman/refresh%20token.PNG" alt="Token Refresh Endpoint" width="850"/>
+</p>
+
+---
+
+### 6. 🛡️ Admin Account Registration (`POST /auth/signup-admin`)
+> **Description:** Creates a user with elevated `admin` privileges for testing Role-Based Access Control (RBAC).
+
+<p align="center">
+  <img src="./some%20screenshots%20from%20postman/signup-admin.PNG" alt="Admin Signup Endpoint" width="850"/>
+</p>
+
+---
+
+### 7. 👑 Role-Based Access Control (`GET /auth/admin`)
+> **Description:** Route protected by both `JwtAuthGuard` and `RolesGuard` requiring `@Roles('admin')`. Regular users receive a `403 Forbidden` error.
+
+<p align="center">
+  <img src="./some%20screenshots%20from%20postman/Get%20Dasboard.PNG" alt="Admin Dashboard RBAC Endpoint" width="850"/>
+</p>
+
+---
+
+## 🧪 Postman Collection Import
+
+A complete Postman Collection is included in the root directory:
+📁 **[`postman_collection.json`](./postman_collection.json)**
+
+* **Auto-Token Script:** Automatically extracts and attaches tokens to subsequent requests.
+* **Pre-configured Tests:** Covers public, protected, role-based, and error scenarios (400, 401, 403).
+
+---
+
+## 📄 License
+This project is [UNLICENSED](LICENSE).
