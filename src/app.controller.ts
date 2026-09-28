@@ -1,8 +1,11 @@
 import { Controller, Get } from '@nestjs/common';
+import { AppService } from './app.service.js';
 import { Public } from './auth/decorators/public.decorator.js';
 
 @Controller()
 export class AppController {
+  constructor(private readonly appService: AppService) {}
+
   /**
    * GET /health
    * Public route — always accessible, no token required.
@@ -13,11 +16,7 @@ export class AppController {
   healthCheck() {
     return {
       success: true,
-      data: {
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-      },
+      data: this.appService.getHealth(),
     };
   }
 }

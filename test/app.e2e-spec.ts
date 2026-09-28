@@ -18,6 +18,7 @@ describe('Auth & Routes E2E', () => {
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
+        forbidNonWhitelisted: true,
         transform: true,
       }),
     );
@@ -46,6 +47,18 @@ describe('Auth & Routes E2E', () => {
       .expect(400);
     expect(res.body.success).toBe(false);
     expect(res.body.message).toContain('at least 6 characters');
+  });
+
+  it('POST /auth/signup should fail when unknown properties are injected', async () => {
+    const res = await request(app.getHttpServer())
+      .post('/auth/signup')
+      .send({
+        email: 'attacker@example.com',
+        password: 'password123',
+        maliciousField: 'exploit',
+      })
+      .expect(400);
+    expect(res.body.success).toBe(false);
   });
 
   it('POST /auth/signup should create a user and not return password', async () => {

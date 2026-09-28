@@ -1,18 +1,13 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Post,
-  Request,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service.js';
 import { SignupDto } from './dto/signup.dto.js';
 import { LoginDto } from './dto/login.dto.js';
-import { JwtAuthGuard } from './jwt-auth.guard.js';
 import { RolesGuard } from './roles.guard.js';
 import { Public } from './decorators/public.decorator.js';
 import { Roles } from './decorators/roles.decorator.js';
+import { CurrentUser } from './decorators/current-user.decorator.js';
+import { Role } from './enums/role.enum.js';
+import type { ActiveUserData } from './interfaces/jwt-payload.interface.js';
 
 @Controller('auth')
 export class AuthController {
@@ -20,8 +15,7 @@ export class AuthController {
 
   /**
    * POST /auth/signup
-   * Creates a new user with a hashed password.
-   * Public — no token required.
+   * Public route — creates a new regular user.
    */
   @Public()
   @Post('signup')
@@ -32,8 +26,7 @@ export class AuthController {
 
   /**
    * POST /auth/login
-   * Validates credentials and returns a JWT access token.
-   * Public — no token required.
+   * Public route — authenticates user and returns JWT access token.
    */
   @Public()
   @Post('login')
@@ -44,32 +37,30 @@ export class AuthController {
 
   /**
    * GET /auth/profile
-   * Protected route — returns the current user's data from the JWT payload.
-   * No DB call needed; data comes from req.user (set by JwtStrategy.validate()).
+   * Protected route — returns current authenticated user payload.
    */
-  @UseGuards(JwtAuthGuard)
   @Get('profile')
-  getProfile(@Request() req: { user: { userId: string; email: string; role: string } }) {
-    return { success: true, data: req.user };
+  getProfile(@CurrentUser() user: ActiveUserData) {
+    return { success: true, data: user };
   }
 
   /**
    * POST /auth/refresh
-   * Protected route — issues new access + refresh tokens.
-   * Requires a valid JWT to call.
+   * Protected route — rotates tokens for the current user.
    */
-  @UseGuards(JwtAuthGuard)
   @Post('refresh')
-  async refresh(@Request() req: { user: { userId: string; email: string; role: string } }) {
-    const { userId, email, role } = req.user;
-    const tokens = await this.authService.refresh(userId, email, role);
+  async refresh(@CurrentUser() user: ActiveUserData) {
+    const tokens = await this.authService.refresh(
+      user.userId,
+      user.email,
+      user.role,
+    );
     return { success: true, data: tokens };
   }
 
   /**
    * POST /auth/signup-admin
-   * Creates an admin user (for demo purposes).
-   * Public — no token required.
+   * Public route — creates an admin user.
    */
   @Public()
   @Post('signup-admin')
@@ -80,18 +71,17 @@ export class AuthController {
 
   /**
    * GET /auth/admin
-   * Admin-only route — demonstrates @Roles() guard.
-   * Requires a valid JWT with role 'admin'.
+   * Protected Admin-only route — requires Role.ADMIN.
    */
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
   @Get('admin')
-  getAdminDashboard(@Request() req: { user: { userId: string; email: string; role: string } }) {
+  getAdminDashboard(@CurrentUser() user: ActiveUserData) {
     return {
       success: true,
       data: {
         message: 'Welcome to the admin dashboard!',
-        user: req.user,
+        user,
       },
     };
   }

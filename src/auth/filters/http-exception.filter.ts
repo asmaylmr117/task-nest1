@@ -4,20 +4,24 @@ import {
   ExceptionFilter,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 
 /**
  * Global exception filter that ensures ALL error responses have a
- * consistent shape: { success: false, statusCode, message }.
+ * consistent shape: { success: false, statusCode, message, timestamp, path }.
  *
  * Handles both HttpException (NestJS errors) and unexpected errors.
  */
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(HttpExceptionFilter.name);
+
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
 
     let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
@@ -35,6 +39,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
       } else {
         message = exceptionResponse as string;
       }
+    } else {
+      // Log unexpected 500 errors
+      this.logger.error(
+        `Unexpected error occurred on [${request?.method}] ${request?.url}`,
+        exception instanceof Error ? exception.stack : exception,
+      );
     }
 
     response.status(statusCode).json({

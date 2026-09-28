@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 
@@ -14,9 +15,13 @@ describe('AppController', () => {
     appController = app.get<AppController>(AppController);
   });
 
-  describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe('Hello World!');
+  describe('healthCheck', () => {
+    it('should return health check data with success: true', () => {
+      const result = appController.healthCheck();
+      expect(result.success).toBe(true);
+      expect(result.data.status).toBe('ok');
+      expect(typeof result.data.uptime).toBe('number');
+      expect(typeof result.data.timestamp).toBe('string');
     });
   });
 });

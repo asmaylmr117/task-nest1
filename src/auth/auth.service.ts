@@ -1,65 +1,69 @@
 import {
   ConflictException,
+  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
+import { Role } from './enums/role.enum.js';
+import { AUTH_CONSTANTS } from './constants/auth.constants.js';
+import {
+  USERS_REPOSITORY_TOKEN,
+  type IUsersRepository,
+} from './repositories/users.repository.js';
+import type { SafeUser } from './interfaces/user.interface.js';
+import type { JwtPayload } from './interfaces/jwt-payload.interface.js';
 import type { SignupDto } from './dto/signup.dto.js';
 import type { LoginDto } from './dto/login.dto.js';
 
-/** In-memory user record — password hash is stored, never the raw password */
-interface User {
-  id: string;
-  email: string;
-  passwordHash: string;
-  role: string;
-  createdAt: Date;
+export interface AuthTokens {
+  access_token: string;
+  refresh_token?: string;
 }
 
-/**
- * AuthService handles user creation, credential verification, and JWT signing.
- *
- * Uses an in-memory array as a simple data store — swap this out for a real
- * database (TypeORM, Prisma, etc.) in production.
- */
 @Injectable()
 export class AuthService {
-  /** In-memory user store */
-  private readonly users: User[] = [];
-  private nextId = 1;
-
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    @Inject(USERS_REPOSITORY_TOKEN)
+    private readonly usersRepository: IUsersRepository,
+    private readonly jwtService: JwtService,
+  ) {}
 
   /**
-   * Register a new user.
-   * - Checks for duplicate email
-   * - Hashes the password with bcrypt (10 salt rounds)
-   * - Returns user data WITHOUT the password
+   * Register a new standard user.
    */
-  async signup(dto: SignupDto) {
-    // Check for existing user
-    const existing = this.users.find((u) => u.email === dto.email);
+  async signup(dto: SignupDto): Promise<SafeUser> {
+    return this.createUser(dto, Role.USER);
+  }
+
+  /**
+   * Create an admin user.
+   */
+  async createAdmin(dto: SignupDto): Promise<SafeUser> {
+    return this.createUser(dto, Role.ADMIN);
+  }
+
+  /**
+   * Helper to create a user with specified role and hashed password.
+   */
+  private async createUser(dto: SignupDto, role: Role): Promise<SafeUser> {
+    const existing = await this.usersRepository.findByEmail(dto.email);
     if (existing) {
       throw new ConflictException('A user with this email already exists');
     }
 
-    // Hash password
-    const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(dto.password, saltRounds);
+    const passwordHash = await bcrypt.hash(
+      dto.password,
+      AUTH_CONSTANTS.BCRYPT_SALT_ROUNDS,
+    );
 
-    // Create user record
-    const user: User = {
-      id: String(this.nextId++),
+    const user = await this.usersRepository.create({
       email: dto.email,
       passwordHash,
-      role: 'user', // default role
-      createdAt: new Date(),
-    };
+      role,
+    });
 
-    this.users.push(user);
-
-    // Return user without password hash
     return {
       id: user.id,
       email: user.email,
@@ -69,11 +73,10 @@ export class AuthService {
   }
 
   /**
-   * Validate credentials and return a signed JWT.
-   * The token payload contains { sub: userId, email, role }.
+   * Validate credentials and return a signed JWT access token.
    */
-  async login(dto: LoginDto) {
-    const user = this.users.find((u) => u.email === dto.email);
+  async login(dto: LoginDto): Promise<AuthTokens> {
+    const user = await this.usersRepository.findByEmail(dto.email);
     if (!user) {
       throw new UnauthorizedException('Invalid email or password');
     }
@@ -83,54 +86,35 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    // JWT payload — this is what JwtStrategy.validate() receives
-    const payload = { sub: user.id, email: user.email, role: user.role };
-
-    return {
-      access_token: this.jwtService.sign(payload),
+    const payload: JwtPayload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
     };
+
+    const access_token = await this.jwtService.signAsync(payload);
+
+    return { access_token };
   }
 
   /**
    * Issue new access + refresh tokens.
-   * In a real app you'd store the refresh token in a DB and invalidate on logout.
    */
-  async refresh(userId: string, email: string, role: string) {
-    const payload = { sub: userId, email, role };
+  async refresh(userId: string, email: string, role: Role): Promise<AuthTokens> {
+    const payload: JwtPayload = { sub: userId, email, role };
+
+    const [access_token, refresh_token] = await Promise.all([
+      this.jwtService.signAsync(payload, {
+        expiresIn: AUTH_CONSTANTS.ACCESS_TOKEN_EXPIRATION,
+      }),
+      this.jwtService.signAsync(payload, {
+        expiresIn: AUTH_CONSTANTS.REFRESH_TOKEN_EXPIRATION,
+      }),
+    ]);
 
     return {
-      access_token: this.jwtService.sign(payload, { expiresIn: '15m' }),
-      refresh_token: this.jwtService.sign(payload, { expiresIn: '7d' }),
-    };
-  }
-
-  /**
-   * Create an admin user (for demo/testing purposes).
-   */
-  async createAdmin(dto: SignupDto) {
-    const existing = this.users.find((u) => u.email === dto.email);
-    if (existing) {
-      throw new ConflictException('A user with this email already exists');
-    }
-
-    const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(dto.password, saltRounds);
-
-    const user: User = {
-      id: String(this.nextId++),
-      email: dto.email,
-      passwordHash,
-      role: 'admin',
-      createdAt: new Date(),
-    };
-
-    this.users.push(user);
-
-    return {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      createdAt: user.createdAt,
+      access_token,
+      refresh_token,
     };
   }
 }

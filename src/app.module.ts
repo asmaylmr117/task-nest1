@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller.js';
+import { AppService } from './app.service.js';
 import { AuthModule } from './auth/auth.module.js';
 import { JwtAuthGuard } from './auth/jwt-auth.guard.js';
 import { HttpExceptionFilter } from './auth/filters/http-exception.filter.js';
@@ -9,6 +10,7 @@ import { HttpExceptionFilter } from './auth/filters/http-exception.filter.js';
   imports: [AuthModule],
   controllers: [AppController],
   providers: [
+    AppService,
     // Register JwtAuthGuard globally — ALL routes require a JWT
     // unless explicitly marked with @Public()
     {

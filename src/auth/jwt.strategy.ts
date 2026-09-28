@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, ExtractJwt } from 'passport-jwt';
+import { AUTH_CONSTANTS } from './constants/auth.constants.js';
+import type { JwtPayload, ActiveUserData } from './interfaces/jwt-payload.interface.js';
 
 /**
  * JwtStrategy extracts the JWT from the Authorization: Bearer <token> header,
@@ -15,18 +17,22 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || 'super-secret-key-change-in-production',
+      secretOrKey: AUTH_CONSTANTS.JWT_SECRET,
     });
   }
 
   /**
    * Called automatically after the JWT is verified successfully.
-   * The return value becomes `req.user` — available via @Request() in controllers.
+   * The return value becomes `req.user` — available via @CurrentUser() in controllers.
    *
    * @param payload — The decoded JWT payload ({ sub, email, role, iat, exp })
-   * @returns The user object attached to the request
+   * @returns ActiveUserData attached to the request
    */
-  validate(payload: { sub: string; email: string; role: string }) {
-    return { userId: payload.sub, email: payload.email, role: payload.role };
+  validate(payload: JwtPayload): ActiveUserData {
+    return {
+      userId: payload.sub,
+      email: payload.email,
+      role: payload.role,
+    };
   }
 }
